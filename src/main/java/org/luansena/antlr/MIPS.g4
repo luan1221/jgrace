@@ -1,6 +1,6 @@
 grammar MIPS;
 
-program: statement+;
+program: statement+ EOF;
 
 statement: instruction | label;
 
