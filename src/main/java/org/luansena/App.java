@@ -1,43 +1,46 @@
 package org.luansena;
 
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.luansena.antlr.MIPSLexer;
-import org.luansena.antlr.MIPSParser;
-import org.luansena.hardware.Memory;
-import org.luansena.parser.MIPSVisitor;
+import org.luansena.hardware.RegisterList;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Parameters;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.Semaphore;
 
-public class App {
+@Command(name = "grace", mixinStandardHelpOptions = true, version = "1.0",
+        description = "Programa para simular instruções MIPS.")
+public class App implements Runnable {
 
-    private static final Semaphore semaphore = new Semaphore(0);
+    @Parameters(index = "0", description = "Caminho do arquivo Assembly")
+    private String filePath;
+
+    public static Map<Integer, String> programCounter = new HashMap<>();
 
     public static void main( String[] args ) {
-        String filePath = "/home/luansena/example.asm";
+       new CommandLine(new App()).execute(args);
+    }
 
+    @Override
+    public void run() {
+        int pc = 0;
+        MIPSimulator simulator = new MIPSimulator();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             Scanner scanner = new Scanner(System.in);
             String line;
 
             while((line = br.readLine()) != null) {
                 System.out.println("Linha do arquivo: " + line);
+                programCounter.put(pc, line);
                 System.out.print("Pressione Enter para continuar...");
                 scanner.nextLine();
 
-                MIPSLexer lexer = new MIPSLexer(CharStreams.fromString(line));
-                CommonTokenStream tokens = new CommonTokenStream(lexer);
-                MIPSParser parser = new MIPSParser(tokens);
-                MIPSParser.ProgramContext programContext = parser.program();
-
-                MIPSVisitor visitor = new MIPSVisitor();
-
-                visitor.visit(programContext);
+                simulator.executeInstruction(line);
 
             }
         } catch(IOException e) {
@@ -45,7 +48,8 @@ public class App {
         }
 
         System.out.println("Fim do programa.");
-        System.out.println(Arrays.toString(Memory.values()));
+        System.out.println(Arrays.toString(RegisterList.values()));
     }
+
 }
 
